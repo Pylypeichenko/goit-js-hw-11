@@ -34,18 +34,11 @@ class ImagesApiService {
       return;
     }
 
-    return axios
-      .get(url)
-      .then(response => {
-        console.log(response.data.hits);
-        return response.data.hits;
-      })
-      .then(() => {
-        this.pageIncrement();
-      })
-      .catch(error => {
-        console.log(error);
-      });
+    return axios.get(url).then(response => {
+      this.pageIncrement();
+
+      return response;
+    });
   }
 
   pageReset() {
@@ -75,29 +68,54 @@ function onSearch(event) {
 
   imagesService.searchQuery = event.currentTarget.elements.searchQuery.value;
   imagesService.pageReset();
-  imagesService.fetchImages().then(images => {
-    console.log(images);
-  });
+  console.log(imagesService.fetchImages());
+  imagesService
+    .fetchImages()
+    .then(dataObject => createImagesMarkup(dataObject))
+    .then(markup => {
+      clearImageGallery();
+      addImagesToGallery(markup);
+    });
 }
 
 function addSomeImages() {
-  imagesService.fetchImages();
+  imagesService
+    .fetchImages()
+    .then(dataObject => createImagesMarkup(dataObject))
+    .then(markup => addImagesToGallery(markup));
 }
 
-// `<div class="photo-card">
-//       <img src="${image.webformatURL}" alt="${image.tags}" loading="lazy" />
-//       <div class="info">
-//         <p class="info-item">
-//           <b>Likes ${image.likes}</b>
-//         </p>
-//         <p class="info-item">
-//           <b>Views ${image.views}</b>
-//         </p>
-//         <p class="info-item">
-//           <b>Comments ${image.comments}</b>
-//         </p>
-//         <p class="info-item">
-//           <b>Downloads ${image.downloads}</b>
-//         </p>
-//       </div>
-//     </div>`
+function createImagesMarkup(dataObject) {
+  const images = dataObject.data.hits;
+  const markup = images
+    .map(
+      image => `<div class="photo-card">
+      <img src="${image.webformatURL}" alt="${image.tags}" loading="lazy" />
+      <div class="info">
+        <p class="info-item">
+          <b>Likes ${image.likes}</b>
+        </p>
+        <p class="info-item">
+          <b>Views ${image.views}</b>
+        </p>
+        <p class="info-item">
+          <b>Comments ${image.comments}</b>
+        </p>
+        <p class="info-item">
+          <b>Downloads ${image.downloads}</b>
+        </p>
+      </div>
+    </div>`
+    )
+    .join('');
+
+  return markup;
+}
+
+function addImagesToGallery(markup) {
+  refs.gallery.insertAdjacentHTML('beforeend', markup);
+}
+
+function clearImageGallery() {
+  refs.gallery.innerHTML = '';
+}
