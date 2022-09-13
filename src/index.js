@@ -4,9 +4,9 @@ import SimpleLightbox from 'simplelightbox';
 import 'simplelightbox/dist/simple-lightbox.min.css';
 
 const refs = {
-  form: document.querySelector('.search-form'),
-  gallery: document.querySelector('.gallery'),
-  loadMoreBtn: document.querySelector('.load-more'),
+  form: document.querySelector('.js-search-form'),
+  gallery: document.querySelector('.js-gallery'),
+  loadMoreBtn: document.querySelector('.js-load-more'),
 };
 
 const axios = require('axios');
@@ -15,6 +15,7 @@ class ImagesApiService {
   constructor() {
     this.searchQuery = '';
     this.page = 1;
+    this.per_page = 100;
   }
 
   fetchImages() {
@@ -25,17 +26,14 @@ class ImagesApiService {
       orientation: 'horizontal',
       safesearch: true,
     };
-    const urlOptions = `&image_type=${options.image_type}&orientation=${options.orientation}&safesearch=${options.safesearch}&page=${this.page}`;
+    const urlOptions = `&image_type=${options.image_type}&orientation=${options.orientation}&safesearch=${options.safesearch}&page=${this.page}&per_page=${this.per_page}`;
 
-    const query = this.searchQuery;
+    const query = this.searchQuery.trim();
     const url = BASIC_URL + query + urlOptions;
-
-    if (query === '') {
-      return;
-    }
 
     return axios.get(url).then(response => {
       this.pageIncrement();
+      console.log(response);
 
       return response;
     });
@@ -67,30 +65,58 @@ function onSearch(event) {
   event.preventDefault();
 
   imagesService.searchQuery = event.currentTarget.elements.searchQuery.value;
+  if (imagesService.searchQuery.trim() === '') {
+    Notify.info('Come on, type something :)');
+    return;
+  }
+
   imagesService.pageReset();
   console.log(imagesService.fetchImages());
   imagesService
     .fetchImages()
-    .then(dataObject => createImagesMarkup(dataObject))
+    .then(dataObject => {
+      return createImagesMarkup(dataObject);
+    })
     .then(markup => {
       clearImageGallery();
       addImagesToGallery(markup);
-    });
+      if (markup) {
+        refs.loadMoreBtn.classList.remove('visually-hidden');
+      }
+    })
+    .catch(onError);
 }
 
 function addSomeImages() {
   imagesService
     .fetchImages()
-    .then(dataObject => createImagesMarkup(dataObject))
+    .then(dataObject => {
+      console.log(imagesService.page);
+      if (
+        imagesService.per_page * imagesService.page >
+        dataObject.data.totalHits
+      ) {
+        onEndOfCOlletion();
+      }
+
+      return createImagesMarkup(dataObject);
+    })
     .then(markup => addImagesToGallery(markup));
 }
 
 function createImagesMarkup(dataObject) {
   const images = dataObject.data.hits;
+
+  if (images.length === 0) {
+    Notify.failure(
+      'Sorry, there are no images matching your search query. Please try again.'
+    );
+  }
+
   const markup = images
     .map(
       image => `<div class="photo-card">
-      <img src="${image.webformatURL}" alt="${image.tags}" loading="lazy" />
+      <img class='image' src="${image.webformatURL}" alt="${image.tags}" loading="lazy" />
       <div class="info">
         <p class="info-item">
           <b>Likes ${image.likes}</b>
@@ -118,4 +144,15 @@ function addImagesToGallery(markup) {
 
 function clearImageGallery() {
   refs.gallery.innerHTML = '';
+}
+
+function onEndOfCOlletion() {
+  refs.loadMoreBtn.classList.add('visually-hidden');
+  Notify.info(
+    "We're sorry, but these are the last ones. You've reached the end of search results."
+  );
+}
+
+function onError(error) {
+  console.log(error);
 }

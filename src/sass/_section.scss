@@ -1,0 +1,30 @@
+.section {
+  padding-top: 20px;
+  padding-bottom: 20px;
+}
+
+.gallery {
+  margin-bottom: 20px;
+
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.photo-card {
+  width: 25%;
+
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  align-content: space-between;
+}
+
+.image {
+  width: 100%;
+  height: auto;
+}
+
+.info {
+  margin-top: auto;
+}
