@@ -22,7 +22,4 @@ const url = BASIC_URL + query + urlOptions;
 
 const axios = require('axios');
 
-axios
-  .get(url)
-  .then(res => res.json)
-  .then(console.log);
+axios.get(url).then(res => res.json);
