@@ -15,7 +15,7 @@ class ImagesApiService {
   constructor() {
     this.searchQuery = '';
     this.page = 1;
-    this.per_page = 100;
+    this.per_page = 40;
   }
 
   fetchImages() {
@@ -33,8 +33,6 @@ class ImagesApiService {
 
     return axios.get(url).then(response => {
       this.pageIncrement();
-      console.log(response);
-
       return response;
     });
   }
@@ -60,6 +58,7 @@ const imagesService = new ImagesApiService();
 
 refs.form.addEventListener('submit', onSearch);
 refs.loadMoreBtn.addEventListener('click', addSomeImages);
+refs.gallery.addEventListener('click', onGalleryClick);
 
 function onSearch(event) {
   event.preventDefault();
@@ -71,13 +70,19 @@ function onSearch(event) {
   }
 
   imagesService.pageReset();
-  console.log(imagesService.fetchImages());
   imagesService
     .fetchImages()
     .then(dataObject => {
+      Notify.success(
+        `Hooray! We found ${dataObject.data.totalHits} totalHits images.`
+      );
+
       return createImagesMarkup(dataObject);
     })
     .then(markup => {
+      if (!refs.loadMoreBtn.classList.contains('visually-hidden')) {
+        refs.loadMoreBtn.classList.add('visually-hidden');
+      }
       clearImageGallery();
       addImagesToGallery(markup);
       if (markup) {
@@ -91,7 +96,6 @@ function addSomeImages() {
   imagesService
     .fetchImages()
     .then(dataObject => {
-      console.log(imagesService.page);
       if (
         imagesService.per_page * imagesService.page >
         dataObject.data.totalHits
@@ -101,7 +105,17 @@ function addSomeImages() {
 
       return createImagesMarkup(dataObject);
     })
-    .then(markup => addImagesToGallery(markup));
+    .then(markup => addImagesToGallery(markup))
+    .catch(onError);
+
+  const { height: cardHeight } = document
+    .querySelector('.gallery')
+    .firstElementChild.getBoundingClientRect();
+
+  window.scrollBy(0, {
+    top: cardHeight * 2,
+    behavior: 'smooth',
+  });
 }
 
 function createImagesMarkup(dataObject) {
@@ -115,23 +129,23 @@ function createImagesMarkup(dataObject) {
 
   const markup = images
     .map(
-      image => `<div class="photo-card">
+      image => `<a href="${image.largeImageURL}" class="gallery__link"><div class="photo-card">
       <img class='image' src="${image.webformatURL}" alt="${image.tags}" loading="lazy" />
       <div class="info">
         <p class="info-item">
-          <b>Likes ${image.likes}</b>
+          <b>Likes: ${image.likes}</b>
         </p>
         <p class="info-item">
-          <b>Views ${image.views}</b>
+          <b>Views: ${image.views}</b>
         </p>
         <p class="info-item">
-          <b>Comments ${image.comments}</b>
+          <b>Comments: ${image.comments}</b>
         </p>
         <p class="info-item">
-          <b>Downloads ${image.downloads}</b>
+          <b>Downloads: ${image.downloads}</b>
         </p>
       </div>
-    </div>`
+    </div></a>`
     )
     .join('');
 
@@ -155,4 +169,14 @@ function onEndOfCOlletion() {
 
 function onError(error) {
   console.log(error);
+  throw new Error(Notify.failure('Oops, something goes wrong :('));
+}
+
+function onGalleryClick(event) {
+  event.preventDefault();
+
+  let galleryImage = new SimpleLightbox('.gallery a');
+  galleryImage.on('show.simplelightbox', function () {
+    galleryImage.captionDelay = 250;
+  });
 }
