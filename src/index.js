@@ -69,6 +69,8 @@ function onSearch(event) {
     return;
   }
 
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
   imagesService.pageReset();
   imagesService
     .fetchImages()
@@ -106,16 +108,7 @@ function addSomeImages() {
       return createImagesMarkup(dataObject);
     })
     .then(markup => addImagesToGallery(markup))
-    .catch(onError);
-
-  const { height: cardHeight } = document
-    .querySelector('.gallery')
-    .firstElementChild.getBoundingClientRect();
-
-  window.scrollBy(0, {
-    top: cardHeight * 2,
-    behavior: 'smooth',
-  });
+    .then(scrollOnLoadMoreBtn);
 }
 
 function createImagesMarkup(dataObject) {
@@ -178,5 +171,16 @@ function onGalleryClick(event) {
   let galleryImage = new SimpleLightbox('.gallery a');
   galleryImage.on('show.simplelightbox', function () {
     galleryImage.captionDelay = 250;
+  });
+}
+
+function scrollOnLoadMoreBtn() {
+  const { height: cardHeight } = document
+    .querySelector('.gallery')
+    .firstElementChild.getBoundingClientRect();
+
+  window.scrollBy({
+    top: cardHeight * 1.5,
+    behavior: 'smooth',
   });
 }
