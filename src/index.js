@@ -18,7 +18,7 @@ class ImagesApiService {
     this.per_page = 40;
   }
 
-  fetchImages() {
+  async fetchImages() {
     const API_KEY = '29852735-acc344f41552f923d8dc8cb55';
     const BASIC_URL = `https://pixabay.com/api/?key=${API_KEY}&q=`;
     const options = {
@@ -60,7 +60,7 @@ refs.form.addEventListener('submit', onSearch);
 refs.loadMoreBtn.addEventListener('click', addSomeImages);
 refs.gallery.addEventListener('click', onGalleryClick);
 
-function onSearch(event) {
+async function onSearch(event) {
   event.preventDefault();
 
   imagesService.searchQuery = event.currentTarget.elements.searchQuery.value;
@@ -72,47 +72,65 @@ function onSearch(event) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
   imagesService.pageReset();
-  imagesService
-    .fetchImages()
-    .then(dataObject => {
-      if (dataObject.data.totalHits !== 0) {
-        Notify.success(
-          `Hooray! We found ${dataObject.data.totalHits} totalHits images.`
-        );
-      }
 
-      return createImagesMarkup(dataObject);
-    })
-    .then(markup => {
-      clearImageGallery();
-      addImagesToGallery(markup);
-      if (markup !== '') {
-        refs.loadMoreBtn.classList.remove('visually-hidden');
-      }
-    })
-    .catch(onError);
+  try {
+    const dataObject = await imagesService.fetchImages();
+    if (dataObject.data.totalHits !== 0) {
+      Notify.success(
+        `Hooray! We found ${dataObject.data.totalHits} totalHits images.`
+      );
+    }
+    const markup = await createImagesMarkup(dataObject);
+    await clearImageGallery();
+    await addImagesToGallery(markup);
+    if (markup !== '') {
+      refs.loadMoreBtn.classList.remove('visually-hidden');
+    }
+  } catch {
+    onError();
+  }
+
+  // imagesService
+  //   .fetchImages()
+  //   .then(dataObject => {
+  //     if (dataObject.data.totalHits !== 0) {
+  //       Notify.success(
+  //         `Hooray! We found ${dataObject.data.totalHits} totalHits images.`
+  //       );
+  //     }
+
+  //     return createImagesMarkup(dataObject);
+  //   })
+  //   .then(markup => {
+  //     clearImageGallery();
+  //     addImagesToGallery(markup);
+  //     if (markup !== '') {
+  //       refs.loadMoreBtn.classList.remove('visually-hidden');
+  //     }
+  //   })
+  //   .catch(onError);
 }
 
-function addSomeImages() {
-  imagesService
-    .fetchImages()
-    .then(dataObject => {
-      return createImagesMarkup(dataObject);
-    })
-    .then(markup => addImagesToGallery(markup))
-    .then(scrollOnLoadMoreBtn);
+async function addSomeImages() {
+  const dataObject = await imagesService.fetchImages();
+  const markup = await createImagesMarkup(dataObject);
+  await addImagesToGallery(markup);
+  await scrollOnLoadMoreBtn();
+
+  // imagesService
+  //   .fetchImages()
+  //   .then(dataObject => createImagesMarkup(dataObject))
+  //   .then(markup => addImagesToGallery(markup))
+  //   .then(scrollOnLoadMoreBtn);
 }
 
-function createImagesMarkup(dataObject) {
+async function createImagesMarkup(dataObject) {
   const images = dataObject.data.hits;
 
   if (images.length === 0) {
     Notify.failure(
       'Sorry, there are no images matching your search query. Please try again.'
     );
-  }
-  if (images.length < imagesService.per_page) {
-    onEndOfCOllection();
   }
 
   const markup = images
@@ -137,14 +155,18 @@ function createImagesMarkup(dataObject) {
     )
     .join('');
 
+  if (images.length < imagesService.per_page) {
+    onEndOfCOllection();
+  }
+
   return markup;
 }
 
-function addImagesToGallery(markup) {
+async function addImagesToGallery(markup) {
   refs.gallery.insertAdjacentHTML('beforeend', markup);
 }
 
-function clearImageGallery() {
+async function clearImageGallery() {
   refs.gallery.innerHTML = '';
 }
 
@@ -169,7 +191,7 @@ function onGalleryClick(event) {
   });
 }
 
-function scrollOnLoadMoreBtn() {
+async function scrollOnLoadMoreBtn() {
   const { height: cardHeight } = document
     .querySelector('.gallery')
     .firstElementChild.getBoundingClientRect();
